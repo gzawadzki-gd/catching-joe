@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from src.constraints import fav_sites
+from src.constraints import fav_sites, timezones
 
 
 def unwrap_location(df):
@@ -14,14 +14,36 @@ def fix_locale(df):
 
 
 def unwrap_date(df):
-    df[["dayofweek", "day", "month"]] = df["date"].apply(
-        lambda x: pd.Series([x.dayofweek, x.day, x.month])
+    df = to_date_hour(df)
+    df = fix_date_timezone(df)
+
+    df[["dayofweek", "day", "month", "year"]] = df["date_hour"].apply(
+        lambda x: pd.Series([x.dayofweek, x.day, x.month, x.year])
+    )
+    return df
+
+
+def to_date_hour(df):
+    df["date_hour"] = pd.to_datetime(df.date.astype(str) + " " + df.time.astype(str))
+    return df
+
+
+def fix_date_timezone(df):
+    df["date_hour"] = df.apply(
+        lambda x: x["date_hour"] + pd.DateOffset(hours=timezones[x.city]), axis=1
     )
     return df
 
 
 def time_to_decimal(df):
     df["hour"] = df["time"].apply(
+        lambda x: pd.to_datetime(x).hour + pd.to_datetime(x).minute / 60
+    )
+    return df
+
+
+def fixed_time_to_decimal(df):
+    df["hour_fixed"] = df["date_hour"].apply(
         lambda x: pd.to_datetime(x).hour + pd.to_datetime(x).minute / 60
     )
     return df
@@ -61,10 +83,15 @@ def add_is_joe(df):
 
 
 def preprocess(df):
+    useless_cols = ["user_id", "sites", "location", "date"]
     df = unwrap_location(df)
     df = fix_locale(df)
-    df = time_to_decimal(df)
     df = unwrap_date(df)
+
+    df = time_to_decimal(df)
+    df = fixed_time_to_decimal(df)
     df = unwrap_sites(df)
     df = add_is_joe(df)
+    df = df.drop(useless_cols, axis=1)
+
     return df
