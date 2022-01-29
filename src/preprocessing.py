@@ -18,7 +18,7 @@ def unwrap_date(df):
     df = fix_date_timezone(df)
 
     df[["dayofweek", "day", "month", "year"]] = df["date_hour"].apply(
-        lambda x: pd.Series([x.dayofweek, x.day, x.month, x.year])
+        lambda x: pd.Series([x.dayofweek, x.day, x.month, x.year]).astype(str)
     )
     return df
 

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from src.preprocessing import preprocess
 from sklearn.feature_selection import mutual_info_regression
+import seaborn as sns
 
 
 def reduce_mem_usage(df):
@@ -12,7 +13,7 @@ def reduce_mem_usage(df):
     start_mem = df.memory_usage().sum() / 1024 ** 2
     print("Memory usage of dataframe is {:.2f} MB".format(start_mem))
 
-    for col in df.columns:
+    for col in df.select_dtypes(exclude=[np.datetime64]).columns:
         col_type = df[col].dtype
 
         if col_type != object:
@@ -38,8 +39,6 @@ def reduce_mem_usage(df):
                     and c_max < np.finfo(np.float32).max
                 ):
                     df[col] = df[col].astype(np.float32)
-                else:
-                    df[col] = df[col].astype(np.float64)
 
     end_mem = df.memory_usage().sum() / 1024 ** 2
     print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
@@ -60,9 +59,9 @@ def import_data(file):
         df = pd.read_parquet(
             file,
         )
-    # df = preprocess(df)
+    df = preprocess(df)
+    df = reduce_mem_usage(df)
 
-    # return reduce_mem_usage(df)
     return df
 
 
@@ -87,3 +86,15 @@ def plot_mi_scores(scores):
     plt.barh(width, scores)
     plt.yticks(width, ticks)
     plt.title("Mutual Information Scores")
+
+
+def categorial_feature_overview(feature, rotation, df):
+    print(
+        feature, "has", df[feature].isnull().sum() / len(df) * 100, "% of null values"
+    )
+    _, ax = plt.subplots(1, 2, figsize=(20, 6))
+    ax[0].tick_params(labelrotation=rotation)
+    ax[1].tick_params(labelrotation=rotation)
+    sns.countplot(data=df, x=feature, ax=ax[0])
+    sns.kdeplot(data=df, x="session_len", ax=ax[1], hue=feature, shade=True)
+    plt.show()
