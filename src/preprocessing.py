@@ -66,10 +66,16 @@ def get_session_len(history):
     return history.apply(lambda x: x.str["length"]).sum(axis=1)
 
 
+def get_max_len_site(history):
+    len_sites = history.apply(lambda x: x.str["length"]).fillna(0)
+    return len_sites.max(axis=1)
+
+
 def unwrap_sites(df):
     history = df["sites"].apply(pd.Series)
     df["sites_num"] = get_num_sites(history)
     df["session_len"] = get_session_len(history)
+    df["max_len_site"] = get_max_len_site(history)
     for i in history.columns:
         df["site_" + str(i)] = (
             history.fillna("").apply(lambda x: x.str["site"])[i].apply(clean_sites)
